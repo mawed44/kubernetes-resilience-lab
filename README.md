@@ -1,6 +1,6 @@
-# Orchestration & résilience d'une application web sur Kubernetes (kind)
+# Orchestration & résilience d'une application web sur Kubernetes (Docker Desktop)
 
-Ce laboratoire déploie une petite API Python sur un cluster Kubernetes local léger (**kind**) avec plusieurs répliques, un routage interne et externe, un stockage persistant et des sondes de santé. Des pannes sont simulées pour vérifier que les pods défaillants se réparent seuls.
+Ce laboratoire déploie une petite API Python sur un cluster Kubernetes local (**Docker Desktop**) avec plusieurs répliques, un routage interne et externe, un stockage persistant et des sondes de santé. Des pannes sont simulées pour vérifier que les pods défaillants se réparent seuls.
 
 ## Problématique
 
@@ -18,11 +18,9 @@ L'[API Flask](app/main.py) expose `GET /` (compteur de visites stocké sur disqu
 | [k8s/deployment.yaml](k8s/deployment.yaml) | 3 répliques, sondes Liveness et Readiness, limites de ressources, contexte de sécurité |
 | [k8s/service.yaml](k8s/service.yaml) | Service `ClusterIP` (interne) et Service `NodePort` 30080 (externe) |
 | [k8s/ingress.yaml](k8s/ingress.yaml) | Ingress NGINX exposant l'API sur `/` |
-| [k8s/hpa.yaml](k8s/hpa.yaml) | Autoscaling de 3 à 6 pods selon le CPU (cible 60 %) |
-| [kind/kind-config.yaml](kind/kind-config.yaml) | Cluster kind avec les ports 8080 (Ingress) et 30080 (NodePort) ouverts sur l'hôte |
 | [scripts/deploy.sh](scripts/deploy.sh) | Déploiement complet en une commande |
 | [scripts/resilience-test.sh](scripts/resilience-test.sh) | Simulation de pannes et rapport dans `reports/resilience.txt` |
-| [scripts/cleanup.sh](scripts/cleanup.sh) | Suppression du cluster |
+| [scripts/cleanup.sh](scripts/cleanup.sh) | Suppression des ressources déployées |
 
 Fonctionnement des sondes :
 
@@ -34,7 +32,7 @@ Le PVC est en `ReadWriteOnce` : sur un cluster kind à un seul nœud, les trois 
 
 ## Résultats attendus
 
-- Une application accessible via l'Ingress (`http://localhost:8080`) et le NodePort (`http://localhost:30080`).
+- Une application accessible via l'Ingress (`http://localhost`) et le NodePort (`http://localhost:30080` via `kubectl port-forward`).
 - Un pod en panne redémarré automatiquement, sans interruption visible grâce aux autres répliques.
 - Un compteur de visites conservé après les redémarrages de pods.
 - Un journal `reports/resilience.txt` et des captures d'écran de la démonstration.
@@ -53,13 +51,12 @@ Ce dépôt n'inclut pas encore de résultats mesurés : le cluster n'a pas été
 
 ## Lancer le projet
 
-Installer **Docker Desktop en mode conteneurs Linux**, [kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation) et [kubectl](https://kubernetes.io/docs/tasks/tools/). Les commandes s'exécutent depuis la racine du projet dans **Bash** ; sous Windows, utiliser Git Bash.
+Installer **Docker Desktop** avec **Kubernetes activé** (Settings > Kubernetes, méthode kind) et [kubectl](https://kubernetes.io/docs/tasks/tools/). Les commandes s'exécutent depuis la racine du projet dans **Bash** ; sous Windows, utiliser Git Bash.
 
 **1. Vérifier les outils**
 
 ```bash
 docker info --format '{{.OSType}}'
-kind version
 kubectl version --client
 ```
 
@@ -71,13 +68,14 @@ Docker doit afficher `linux`.
 bash scripts/deploy.sh
 ```
 
-Le script crée le cluster, construit et charge l'image, installe l'Ingress NGINX et metrics-server, puis applique les manifestes.
+Le script construit l'image, installe l'Ingress NGINX puis applique les manifestes.
 
 **3. Tester l'application**
 
 ```bash
-curl http://localhost:8080/
-curl http://localhost:30080/health
+curl http://localhost/
+# NodePort : port-forward (laisser tourner), puis dans un autre terminal curl http://localhost:30080/health
+kubectl -n resilience-lab port-forward svc/api-nodeport 30080:80
 kubectl -n resilience-lab get pods
 ```
 
@@ -92,7 +90,7 @@ kubectl -n resilience-lab get pods --watch
 
 Lancer `--watch` dans un second terminal pour observer les redémarrages en direct.
 
-**5. Supprimer le cluster**
+**5. Nettoyer**
 
 ```bash
 bash scripts/cleanup.sh
