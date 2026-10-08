@@ -1,5 +1,6 @@
 """Petite API Flask utilisée pour démontrer la résilience sous Kubernetes."""
 import os
+import signal
 import socket
 import time
 
@@ -57,6 +58,7 @@ def break_health():
 @app.get("/crash")
 def crash():
     """Simule un crash brutal du processus (le conteneur s'arrête avec le code 1)."""
+    os.kill(os.getppid(), signal.SIGTERM)  # arrête Gunicorn (PID 1) : le conteneur s'arrête
     os._exit(1)
 
 

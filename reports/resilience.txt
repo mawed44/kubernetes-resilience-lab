@@ -1,0 +1,35 @@
+### Etat initial
+NAME                   READY   STATUS    RESTARTS   AGE
+api-5cc745b589-5ghn9   1/1     Running   0          18s
+api-5cc745b589-hdt28   1/1     Running   0          25s
+api-5cc745b589-kp47s   1/1     Running   0          25s
+
+### Test 1 : crash du processus (api-5cc745b589-5ghn9)
+wget: error getting response
+command terminated with exit code 1
+NAME                   READY   STATUS    RESTARTS   AGE
+api-5cc745b589-5ghn9   1/1     Running   0          28s
+api-5cc745b589-hdt28   1/1     Running   0          35s
+api-5cc745b589-kp47s   1/1     Running   0          35s
+
+### Test 2 : liveness en échec (api-5cc745b589-5ghn9)
+{"pod":"api-5cc745b589-5ghn9","status":"health endpoint cass\u00e9"}
+NAME                   READY   STATUS    RESTARTS      AGE
+api-5cc745b589-5ghn9   1/1     Running   1 (18s ago)   59s
+api-5cc745b589-hdt28   1/1     Running   0             66s
+api-5cc745b589-kp47s   1/1     Running   0             66s
+19s         Warning   Unhealthy   pod/api-5cc745b589-5ghn9   Liveness probe failed: HTTP probe failed with statuscode: 500
+19s         Normal    Killing     pod/api-5cc745b589-5ghn9   Container api failed liveness probe, will be restarted
+18s         Warning   Unhealthy   pod/api-5cc745b589-5ghn9   Readiness probe failed: Get "http://10.244.0.16:8080/ready": read tcp 10.244.0.1:33544->10.244.0.16:8080: read: connection reset by peer
+
+### Test 3 : suppression d'un pod
+pod "api-5cc745b589-5ghn9" deleted from resilience-lab namespace
+Waiting for deployment "api" rollout to finish: 2 of 3 updated replicas are available...
+deployment "api" successfully rolled out
+NAME                   READY   STATUS    RESTARTS   AGE
+api-5cc745b589-hdt28   1/1     Running   0          72s
+api-5cc745b589-kp47s   1/1     Running   0          72s
+api-5cc745b589-mm6xj   1/1     Running   0          6s
+
+### Persistance
+{"pod":"api-5cc745b589-hdt28","uptime_seconds":68,"visits":5}
