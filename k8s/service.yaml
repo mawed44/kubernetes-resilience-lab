@@ -1,0 +1,30 @@
+# Accès interne au cluster
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+  namespace: resilience-lab
+spec:
+  type: ClusterIP
+  selector:
+    app: api
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+# Accès externe direct via un port du nœud (http://localhost:30080 avec kind)
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-nodeport
+  namespace: resilience-lab
+spec:
+  type: NodePort
+  selector:
+    app: api
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      nodePort: 30080
